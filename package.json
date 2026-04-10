@@ -13,6 +13,8 @@
     "vite": "^8.0.4"
   },
   "dependencies": {
-    "blockly": "^12.5.1"
+    "@types/js-yaml": "^4.0.9",
+    "blockly": "^12.5.1",
+    "js-yaml": "^4.1.1"
   }
 }

@@ -1,10 +1,25 @@
 import * as Blockly from 'blockly'
 import 'blockly/blocks'
-import { javascriptGenerator } from 'blockly/javascript'
+import { dump as dumpYaml } from 'js-yaml'
+import { registerOpenApiMvpBlocks } from '../openapi/blocks'
+import { buildOpenApiMvpFromWorkspace } from '../openapi/buildFromBlocks'
 
 const TOOLBOX: Blockly.utils.toolbox.ToolboxDefinition = {
   kind: 'categoryToolbox',
   contents: [
+    {
+      kind: 'category',
+      name: 'OpenAPI (MVP)',
+      colour: '#7c3aed',
+      contents: [
+        { kind: 'block', type: 'openapi_root' },
+        { kind: 'block', type: 'openapi_path' },
+        { kind: 'block', type: 'openapi_method' },
+        { kind: 'block', type: 'openapi_response' },
+        { kind: 'block', type: 'openapi_schema_primitive' },
+      ],
+    },
+    { kind: 'sep' },
     {
       kind: 'category',
       name: 'Logique',
@@ -62,18 +77,20 @@ function assertEl<T extends HTMLElement>(el: Element | null, label: string): T {
 }
 
 export function mountBlocklyDemo(root: HTMLDivElement) {
+  registerOpenApiMvpBlocks()
+
   root.innerHTML = `
   <div class="appShell">
     <header class="topbar">
       <div class="brand">
-        <div class="brandTitle">Découverte Blockly (TypeScript)</div>
-        <div class="brandSubtitle">Workspace + toolbox + export/import XML + génération JS</div>
+        <div class="brandTitle">OpenAPI Visual Builder (MVP)</div>
+        <div class="brandSubtitle">Blocs emboîtables → OpenAPI (JSON/YAML) + export/import XML</div>
       </div>
       <div class="actions">
         <button id="btnNew" type="button">Nouveau</button>
         <button id="btnExport" type="button">Exporter XML</button>
         <button id="btnImport" type="button">Importer XML</button>
-        <button id="btnGen" type="button" class="primary">Générer JS</button>
+        <button id="btnGen" type="button" class="primary">Générer OpenAPI</button>
       </div>
     </header>
 
@@ -89,8 +106,8 @@ export function mountBlocklyDemo(root: HTMLDivElement) {
         </div>
 
         <div class="panel">
-          <div class="panelTitle">Code JavaScript généré</div>
-          <textarea id="codeArea" spellcheck="false" placeholder="Clique sur “Générer JS”…"></textarea>
+          <div class="panelTitle">OpenAPI généré (YAML + JSON)</div>
+          <textarea id="codeArea" spellcheck="false" placeholder="Clique sur “Générer OpenAPI”…"></textarea>
         </div>
       </section>
     </main>
@@ -149,11 +166,20 @@ export function mountBlocklyDemo(root: HTMLDivElement) {
   })
 
   btnGen.addEventListener('click', () => {
-    codeArea.value = javascriptGenerator.workspaceToCode(workspace)
+    const spec = buildOpenApiMvpFromWorkspace(workspace)
+    if (!spec) {
+      codeArea.value =
+        'Ajoute le bloc “OpenAPI …” (racine) depuis la catégorie “OpenAPI (MVP)”, puis génère.'
+      return
+    }
+
+    const yaml = dumpYaml(spec, { noRefs: true, lineWidth: 120 })
+    const json = JSON.stringify(spec, null, 2)
+    codeArea.value = `${yaml}\n---\n${json}\n`
   })
 
   // Petite expérience “auto-save” (pratique pour apprendre Blockly)
-  const KEY = 'blockly-demo-xml-v1'
+  const KEY = 'openapi-mvp-blockly-xml-v1'
   const saved = localStorage.getItem(KEY)
   if (saved) {
     try {
