@@ -79,6 +79,11 @@ function assertEl<T extends HTMLElement>(el: Element | null, label: string): T {
 export function mountBlocklyDemo(root: HTMLDivElement) {
   registerOpenApiMvpBlocks()
 
+  type OutputMode = 'yaml' | 'json'
+  let outputMode: OutputMode = 'yaml'
+  let lastYaml: string | null = null
+  let lastJson: string | null = null
+
   root.innerHTML = `
   <div class="appShell">
     <header class="topbar">
@@ -106,7 +111,13 @@ export function mountBlocklyDemo(root: HTMLDivElement) {
         </div>
 
         <div class="panel">
-          <div class="panelTitle">OpenAPI généré (YAML + JSON)</div>
+          <div class="panelTitle panelTitleRow">
+            <span>OpenAPI généré</span>
+            <span class="toggleGroup" role="tablist" aria-label="Format de sortie">
+              <button id="btnShowYaml" type="button" class="toggleBtn isActive" role="tab" aria-selected="true">YAML</button>
+              <button id="btnShowJson" type="button" class="toggleBtn" role="tab" aria-selected="false">JSON</button>
+            </span>
+          </div>
           <textarea id="codeArea" spellcheck="false" placeholder="Clique sur “Générer OpenAPI”…"></textarea>
         </div>
       </section>
@@ -119,8 +130,24 @@ export function mountBlocklyDemo(root: HTMLDivElement) {
   const btnExport = assertEl<HTMLButtonElement>(root.querySelector('#btnExport'), '#btnExport')
   const btnImport = assertEl<HTMLButtonElement>(root.querySelector('#btnImport'), '#btnImport')
   const btnGen = assertEl<HTMLButtonElement>(root.querySelector('#btnGen'), '#btnGen')
+  const btnShowYaml = assertEl<HTMLButtonElement>(root.querySelector('#btnShowYaml'), '#btnShowYaml')
+  const btnShowJson = assertEl<HTMLButtonElement>(root.querySelector('#btnShowJson'), '#btnShowJson')
   const xmlArea = assertEl<HTMLTextAreaElement>(root.querySelector('#xmlArea'), '#xmlArea')
   const codeArea = assertEl<HTMLTextAreaElement>(root.querySelector('#codeArea'), '#codeArea')
+
+  const setMode = (mode: OutputMode) => {
+    outputMode = mode
+    const isYaml = mode === 'yaml'
+    btnShowYaml.classList.toggle('isActive', isYaml)
+    btnShowJson.classList.toggle('isActive', !isYaml)
+    btnShowYaml.setAttribute('aria-selected', String(isYaml))
+    btnShowJson.setAttribute('aria-selected', String(!isYaml))
+    if (isYaml) codeArea.value = lastYaml ?? codeArea.value
+    else codeArea.value = lastJson ?? codeArea.value
+  }
+
+  btnShowYaml.addEventListener('click', () => setMode('yaml'))
+  btnShowJson.addEventListener('click', () => setMode('json'))
 
   const workspace = Blockly.inject(blocklyDiv, {
     toolbox: TOOLBOX,
@@ -150,6 +177,9 @@ export function mountBlocklyDemo(root: HTMLDivElement) {
     workspace.clear()
     xmlArea.value = ''
     codeArea.value = ''
+    lastYaml = null
+    lastJson = null
+    setMode('yaml')
   })
 
   btnExport.addEventListener('click', () => {
@@ -170,12 +200,15 @@ export function mountBlocklyDemo(root: HTMLDivElement) {
     if (!spec) {
       codeArea.value =
         'Ajoute le bloc “OpenAPI …” (racine) depuis la catégorie “OpenAPI (MVP)”, puis génère.'
+      lastYaml = null
+      lastJson = null
+      setMode('yaml')
       return
     }
 
-    const yaml = dumpYaml(spec, { noRefs: true, lineWidth: 120 })
-    const json = JSON.stringify(spec, null, 2)
-    codeArea.value = `${yaml}\n---\n${json}\n`
+    lastYaml = dumpYaml(spec, { noRefs: true, lineWidth: 120 })
+    lastJson = JSON.stringify(spec, null, 2)
+    codeArea.value = outputMode === 'yaml' ? lastYaml : lastJson
   })
 
   // Petite expérience “auto-save” (pratique pour apprendre Blockly)
