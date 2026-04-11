@@ -38,19 +38,134 @@ function chainFrom(first: Blockly.Block | null): Blockly.Block[] {
   return out
 }
 
+/** Exemple saisi : JSON si parse OK, sinon chaîne brute. */
+function parseExampleInput(raw: string): unknown | undefined {
+  const t = raw.trim()
+  if (!t) return undefined
+  try {
+    return JSON.parse(t) as unknown
+  } catch {
+    return raw
+  }
+}
+
+/**
+ * Ajoute description / example sur un schéma.
+ * Si c’est uniquement un $ref (OAS 3.0 interdit les frères) → allOf + métadonnées.
+ */
+function applySchemaMetadata(
+  base: Record<string, unknown>,
+  opts: { description?: string; example?: unknown },
+): Record<string, unknown> {
+  const desc = opts.description?.trim()
+  const ex = opts.example
+  const hasDesc = Boolean(desc)
+  const hasEx = ex !== undefined
+
+  if (!hasDesc && !hasEx) return base
+
+  const onlyRef = Object.keys(base).length === 1 && typeof base.$ref === 'string'
+  if (onlyRef) {
+    const out: Record<string, unknown> = { allOf: [base] }
+    if (hasDesc) out.description = desc
+    if (hasEx) out.example = ex
+    return out
+  }
+
+  const out = { ...base }
+  if (hasDesc) out.description = desc
+  if (hasEx) out.example = ex
+  return out
+}
+
+function buildComposableList(
+  block: Blockly.Block,
+  keys: string[],
+  wrapperKey: 'allOf' | 'oneOf' | 'anyOf',
+): Record<string, unknown> | undefined {
+  const parts = keys
+    .map((k) => buildSchemaFromValue(block.getInputTargetBlock(k)))
+    .filter((p): p is Record<string, unknown> => Boolean(p))
+  if (parts.length === 0) return undefined
+  if (parts.length === 1) return parts[0]
+  return { [wrapperKey]: parts }
+}
+
 function buildSchemaFromValue(block: Blockly.Block | null): Record<string, unknown> | undefined {
   if (!block) return undefined
+
+  if (block.type === 'openapi_schema_property') {
+    return undefined
+  }
+
   if (block.type === 'openapi_schema_primitive') {
     const type = String(block.getFieldValue('TYPE') ?? 'string')
     const formatRaw = String(block.getFieldValue('FORMAT') ?? '')
     const format = formatRaw.trim()
-    return format ? { type, format } : { type }
+    const base = format ? { type, format } : { type }
+    const desc = String(block.getFieldValue('DESCRIPTION') ?? '').trim()
+    const ex = parseExampleInput(String(block.getFieldValue('EXAMPLE') ?? ''))
+    return applySchemaMetadata(base, { description: desc || undefined, example: ex })
   }
+
   if (block.type === 'openapi_schema_ref') {
     const name = String(block.getFieldValue('REF_NAME') ?? '').trim()
     if (!name) return undefined
-    return { $ref: `#/components/schemas/${name}` }
+    const base = { $ref: `#/components/schemas/${name}` }
+    const desc = String(block.getFieldValue('DESCRIPTION') ?? '').trim()
+    const ex = parseExampleInput(String(block.getFieldValue('EXAMPLE') ?? ''))
+    return applySchemaMetadata(base, { description: desc || undefined, example: ex })
   }
+
+  if (block.type === 'openapi_schema_object') {
+    const desc = String(block.getFieldValue('DESCRIPTION') ?? '').trim()
+    const properties: Record<string, unknown> = {}
+    const required: string[] = []
+
+    const firstProp = block.getInputTargetBlock('PROPERTIES')
+    for (const propBlock of chainFrom(firstProp)) {
+      if (propBlock.type !== 'openapi_schema_property') continue
+      const name = String(propBlock.getFieldValue('NAME') ?? '').trim()
+      if (!name) continue
+
+      const inner = buildSchemaFromValue(propBlock.getInputTargetBlock('VALUE'))
+      if (!inner) continue
+
+      const pDesc = String(propBlock.getFieldValue('DESCRIPTION') ?? '').trim()
+      const pEx = parseExampleInput(String(propBlock.getFieldValue('EXAMPLE') ?? ''))
+      properties[name] = applySchemaMetadata(inner, {
+        description: pDesc || undefined,
+        example: pEx,
+      })
+
+      if (propBlock.getFieldValue('REQUIRED') === 'TRUE') required.push(name)
+    }
+
+    const obj: Record<string, unknown> = { type: 'object', properties }
+    if (required.length > 0) obj.required = [...new Set(required)]
+    if (desc) obj.description = desc
+    return obj
+  }
+
+  if (block.type === 'openapi_schema_array') {
+    const desc = String(block.getFieldValue('DESCRIPTION') ?? '').trim()
+    const items = buildSchemaFromValue(block.getInputTargetBlock('ITEMS'))
+    const arr: Record<string, unknown> = { type: 'array' }
+    if (items) arr.items = items
+    if (desc) arr.description = desc
+    return arr
+  }
+
+  if (block.type === 'openapi_schema_allOf') {
+    return buildComposableList(block, ['A', 'B', 'C'], 'allOf')
+  }
+  if (block.type === 'openapi_schema_oneOf') {
+    return buildComposableList(block, ['A', 'B', 'C'], 'oneOf')
+  }
+  if (block.type === 'openapi_schema_anyOf') {
+    return buildComposableList(block, ['A', 'B', 'C'], 'anyOf')
+  }
+
   return undefined
 }
 
