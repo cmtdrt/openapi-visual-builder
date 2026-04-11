@@ -1,4 +1,4 @@
 import './style.css'
-import { mountBlocklyDemo } from './playground/blocklyDemo'
+import { mountOpenApiBuilder } from './openapi/ui'
 
-mountBlocklyDemo(document.querySelector<HTMLDivElement>('#app')!)
+mountOpenApiBuilder(document.querySelector<HTMLDivElement>('#app')!)

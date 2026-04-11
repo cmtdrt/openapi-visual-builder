@@ -1,15 +1,14 @@
 import * as Blockly from 'blockly'
-import 'blockly/blocks'
 import { dump as dumpYaml } from 'js-yaml'
-import { registerOpenApiMvpBlocks } from '../openapi/blocks'
-import { buildOpenApiMvpFromWorkspace } from '../openapi/buildFromBlocks'
+import { registerOpenApiMvpBlocks } from './blocks'
+import { buildOpenApiMvpFromWorkspace } from './buildFromBlocks'
 
 const TOOLBOX: Blockly.utils.toolbox.ToolboxDefinition = {
   kind: 'categoryToolbox',
   contents: [
     {
       kind: 'category',
-      name: 'OpenAPI (MVP)',
+      name: 'OpenAPI',
       colour: '#7c3aed',
       contents: [
         { kind: 'block', type: 'openapi_root' },
@@ -19,55 +18,6 @@ const TOOLBOX: Blockly.utils.toolbox.ToolboxDefinition = {
         { kind: 'block', type: 'openapi_schema_primitive' },
       ],
     },
-    { kind: 'sep' },
-    {
-      kind: 'category',
-      name: 'Logique',
-      categorystyle: 'logic_category',
-      contents: [
-        { kind: 'block', type: 'controls_if' },
-        { kind: 'block', type: 'logic_compare' },
-        { kind: 'block', type: 'logic_operation' },
-        { kind: 'block', type: 'logic_negate' },
-        { kind: 'block', type: 'logic_boolean' },
-      ],
-    },
-    {
-      kind: 'category',
-      name: 'Boucles',
-      categorystyle: 'loop_category',
-      contents: [
-        { kind: 'block', type: 'controls_repeat_ext' },
-        { kind: 'block', type: 'controls_whileUntil' },
-        { kind: 'block', type: 'controls_for' },
-        { kind: 'block', type: 'controls_flow_statements' },
-      ],
-    },
-    {
-      kind: 'category',
-      name: 'Math',
-      categorystyle: 'math_category',
-      contents: [
-        { kind: 'block', type: 'math_number' },
-        { kind: 'block', type: 'math_arithmetic' },
-        { kind: 'block', type: 'math_random_int' },
-        { kind: 'block', type: 'math_round' },
-      ],
-    },
-    {
-      kind: 'category',
-      name: 'Texte',
-      categorystyle: 'text_category',
-      contents: [
-        { kind: 'block', type: 'text' },
-        { kind: 'block', type: 'text_join' },
-        { kind: 'block', type: 'text_length' },
-        { kind: 'block', type: 'text_print' },
-      ],
-    },
-    { kind: 'sep' },
-    { kind: 'category', name: 'Variables', custom: 'VARIABLE' },
-    { kind: 'category', name: 'Fonctions', custom: 'PROCEDURE' },
   ],
 }
 
@@ -76,7 +26,7 @@ function assertEl<T extends HTMLElement>(el: Element | null, label: string): T {
   return el as T
 }
 
-export function mountBlocklyDemo(root: HTMLDivElement) {
+export function mountOpenApiBuilder(root: HTMLDivElement) {
   registerOpenApiMvpBlocks()
 
   type OutputMode = 'yaml' | 'json'
@@ -89,7 +39,7 @@ export function mountBlocklyDemo(root: HTMLDivElement) {
     <header class="topbar">
       <div class="brand">
         <div class="brandTitle">OpenAPI Visual Builder (MVP)</div>
-        <div class="brandSubtitle">Blocs emboîtables → OpenAPI (JSON/YAML) + export/import XML</div>
+        <div class="brandSubtitle">Blocs emboîtables → OpenAPI (YAML/JSON) + export/import XML</div>
       </div>
       <div class="actions">
         <button id="btnNew" type="button">Nouveau</button>
@@ -199,7 +149,7 @@ export function mountBlocklyDemo(root: HTMLDivElement) {
     const spec = buildOpenApiMvpFromWorkspace(workspace)
     if (!spec) {
       codeArea.value =
-        'Ajoute le bloc “OpenAPI …” (racine) depuis la catégorie “OpenAPI (MVP)”, puis génère.'
+        'Ajoute le bloc racine “OpenAPI …” depuis la toolbox, puis clique sur “Générer OpenAPI”.'
       lastYaml = null
       lastJson = null
       setMode('yaml')
@@ -211,7 +161,6 @@ export function mountBlocklyDemo(root: HTMLDivElement) {
     codeArea.value = outputMode === 'yaml' ? lastYaml : lastJson
   })
 
-  // Petite expérience “auto-save” (pratique pour apprendre Blockly)
   const KEY = 'openapi-mvp-blockly-xml-v1'
   const saved = localStorage.getItem(KEY)
   if (saved) {
@@ -232,4 +181,3 @@ export function mountBlocklyDemo(root: HTMLDivElement) {
     }
   })
 }
-

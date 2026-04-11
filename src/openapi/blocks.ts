@@ -1,7 +1,5 @@
 import * as Blockly from 'blockly'
 
-export type OpenApiConnType = 'OPENAPI_ROOT' | 'PATH' | 'METHOD' | 'RESPONSE' | 'SCHEMA'
-
 export function registerOpenApiMvpBlocks() {
   if (Blockly.Blocks['openapi_root']) return
 
