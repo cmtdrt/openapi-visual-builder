@@ -12,10 +12,12 @@ const TOOLBOX: Blockly.utils.toolbox.ToolboxDefinition = {
       colour: '#7c3aed',
       contents: [
         { kind: 'block', type: 'openapi_root' },
+        { kind: 'block', type: 'openapi_schema_def' },
+        { kind: 'block', type: 'openapi_schema_ref' },
+        { kind: 'block', type: 'openapi_schema_primitive' },
         { kind: 'block', type: 'openapi_path' },
         { kind: 'block', type: 'openapi_method' },
         { kind: 'block', type: 'openapi_response' },
-        { kind: 'block', type: 'openapi_schema_primitive' },
       ],
     },
   ],

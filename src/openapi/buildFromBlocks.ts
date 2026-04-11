@@ -3,6 +3,9 @@ import * as Blockly from 'blockly'
 export type OpenApiMvpSpec = {
   openapi: string
   info: { title: string; version: string }
+  components?: {
+    schemas: Record<string, Record<string, unknown>>
+  }
   paths: Record<
     string,
     Record<
@@ -43,6 +46,11 @@ function buildSchemaFromValue(block: Blockly.Block | null): Record<string, unkno
     const format = formatRaw.trim()
     return format ? { type, format } : { type }
   }
+  if (block.type === 'openapi_schema_ref') {
+    const name = String(block.getFieldValue('REF_NAME') ?? '').trim()
+    if (!name) return undefined
+    return { $ref: `#/components/schemas/${name}` }
+  }
   return undefined
 }
 
@@ -54,6 +62,17 @@ export function buildOpenApiMvpFromWorkspace(workspace: Blockly.Workspace): Open
   const openapi = String(root.getFieldValue('OPENAPI_VERSION') ?? '3.0.3')
   const title = String(root.getFieldValue('TITLE') ?? 'Mon API').trim() || 'Mon API'
   const version = String(root.getFieldValue('API_VERSION') ?? '1.0.0').trim() || '1.0.0'
+
+  const schemas: Record<string, Record<string, unknown>> = {}
+  const firstSchemaDef = root.getInputTargetBlock('SCHEMA_DEFS')
+  for (const defBlock of chainFrom(firstSchemaDef)) {
+    if (defBlock.type !== 'openapi_schema_def') continue
+    const schemaName = String(defBlock.getFieldValue('SCHEMA_NAME') ?? '').trim()
+    if (!schemaName) continue
+    const inner = defBlock.getInputTargetBlock('SCHEMA')
+    const built = buildSchemaFromValue(inner)
+    if (built) schemas[schemaName] = built
+  }
 
   const paths: OpenApiMvpSpec['paths'] = {}
 
@@ -100,10 +119,14 @@ export function buildOpenApiMvpFromWorkspace(workspace: Blockly.Workspace): Open
     }
   }
 
-  return {
+  const spec: OpenApiMvpSpec = {
     openapi,
     info: { title, version },
     paths,
   }
+  if (Object.keys(schemas).length > 0) {
+    spec.components = { schemas }
+  }
+  return spec
 }
 

@@ -6,7 +6,7 @@ export function registerOpenApiMvpBlocks() {
   Blockly.defineBlocksWithJsonArray([
     {
       type: 'openapi_root',
-      message0: 'OpenAPI %1 titre %2 version %3 %4 paths %5',
+      message0: 'OpenAPI %1 titre %2 version %3 %4 schémas réutilisables %5 paths %6',
       args0: [
         {
           type: 'field_dropdown',
@@ -19,6 +19,7 @@ export function registerOpenApiMvpBlocks() {
         { type: 'field_input', name: 'TITLE', text: 'Mon API' },
         { type: 'field_input', name: 'API_VERSION', text: '1.0.0' },
         { type: 'input_dummy' },
+        { type: 'input_statement', name: 'SCHEMA_DEFS', check: 'SCHEMA_DEF' },
         { type: 'input_statement', name: 'PATHS', check: 'PATH' },
       ],
       colour: 285,
@@ -99,6 +100,28 @@ export function registerOpenApiMvpBlocks() {
       output: 'SCHEMA',
       colour: 20,
       tooltip: 'Schema JSON simple (type + format optionnel).',
+      helpUrl: '',
+    },
+    {
+      type: 'openapi_schema_ref',
+      message0: '$ref vers schema %1',
+      args0: [{ type: 'field_input', name: 'REF_NAME', text: 'MonModele' }],
+      output: 'SCHEMA',
+      colour: 290,
+      tooltip: 'Référence OpenAPI : #/components/schemas/<nom>',
+      helpUrl: '',
+    },
+    {
+      type: 'openapi_schema_def',
+      message0: 'schema nom %1 définition %2',
+      args0: [
+        { type: 'field_input', name: 'SCHEMA_NAME', text: 'MonModele' },
+        { type: 'input_value', name: 'SCHEMA', check: 'SCHEMA' },
+      ],
+      previousStatement: 'SCHEMA_DEF',
+      nextStatement: 'SCHEMA_DEF',
+      colour: 45,
+      tooltip: 'Déclare un schéma réutilisable sous components.schemas.',
       helpUrl: '',
     },
   ])
