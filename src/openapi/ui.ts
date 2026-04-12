@@ -8,11 +8,31 @@ const TOOLBOX: Blockly.utils.toolbox.ToolboxDefinition = {
   contents: [
     {
       kind: 'category',
-      name: 'OpenAPI',
+      name: 'Document',
       colour: '#7c3aed',
+      contents: [{ kind: 'block', type: 'openapi_root' }],
+    },
+    {
+      kind: 'category',
+      name: 'Paths et opérations',
+      colour: '#2563eb',
       contents: [
-        { kind: 'block', type: 'openapi_root' },
-        { kind: 'block', type: 'openapi_schema_def' },
+        { kind: 'block', type: 'openapi_path' },
+        { kind: 'block', type: 'openapi_method' },
+        { kind: 'block', type: 'openapi_response' },
+      ],
+    },
+    {
+      kind: 'category',
+      name: 'Schémas réutilisables',
+      colour: '#ca8a04',
+      contents: [{ kind: 'block', type: 'openapi_schema_def' }],
+    },
+    {
+      kind: 'category',
+      name: 'Construire un schéma',
+      colour: '#059669',
+      contents: [
         { kind: 'block', type: 'openapi_schema_ref' },
         { kind: 'block', type: 'openapi_schema_primitive' },
         { kind: 'block', type: 'openapi_schema_object' },
@@ -21,10 +41,13 @@ const TOOLBOX: Blockly.utils.toolbox.ToolboxDefinition = {
         { kind: 'block', type: 'openapi_schema_allOf' },
         { kind: 'block', type: 'openapi_schema_oneOf' },
         { kind: 'block', type: 'openapi_schema_anyOf' },
-        { kind: 'block', type: 'openapi_path' },
-        { kind: 'block', type: 'openapi_method' },
-        { kind: 'block', type: 'openapi_response' },
       ],
+    },
+    {
+      kind: 'category',
+      name: 'Sécurité',
+      colour: '#64748b',
+      contents: [{ kind: 'label', text: '...' }],
     },
   ],
 }
