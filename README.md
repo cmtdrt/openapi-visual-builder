@@ -1,16 +1,4 @@
 ## openapi-visual-builder
 
-Éditeur visuel **OpenAPI** (MVP) avec **Blockly** et **TypeScript** : blocs emboîtables, export YAML/JSON, sauvegarde du workspace en XML.
+An intuitive interface to create **OpenAPI** contracts using snap-together, reusable blocks.
 
-### Démarrer
-
-```bash
-npm install
-npm run dev
-```
-
-### Code
-
-- `src/openapi/blocks.ts` — définition des blocs OpenAPI
-- `src/openapi/buildFromBlocks.ts` — workspace → objet OpenAPI
-- `src/openapi/ui.ts` — injection Blockly + panneaux
