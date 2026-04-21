@@ -5,13 +5,16 @@ export type OpenApiMvpSpec = {
   info: { title: string; version: string }
   components?: {
     schemas: Record<string, Record<string, unknown>>
+    securitySchemes?: Record<string, Record<string, unknown>>
   }
+  security?: Array<Record<string, string[]>>
   paths: Record<
     string,
     Record<
       string,
       {
         summary?: string
+        security?: Array<Record<string, string[]>>
         responses: Record<
           string,
           {
@@ -169,6 +172,57 @@ function buildSchemaFromValue(block: Blockly.Block | null): Record<string, unkno
   return undefined
 }
 
+function buildSecuritySchemesFromRoot(
+  root: Blockly.Block,
+): Record<string, Record<string, unknown>> | undefined {
+  const schemes: Record<string, Record<string, unknown>> = {}
+  const first = root.getInputTargetBlock('SECURITY_SCHEMES')
+  for (const b of chainFrom(first)) {
+    const id = String(b.getFieldValue('SCHEME_ID') ?? '').trim()
+    if (!id) continue
+
+    if (b.type === 'openapi_security_scheme_jwt') {
+      const description = String(b.getFieldValue('DESCRIPTION') ?? '').trim()
+      const bearerFormat = String(b.getFieldValue('BEARER_FORMAT') ?? '').trim()
+      schemes[id] = {
+        type: 'http',
+        scheme: 'bearer',
+        ...(bearerFormat ? { bearerFormat } : {}),
+        ...(description ? { description } : {}),
+      }
+      continue
+    }
+
+    if (b.type === 'openapi_security_scheme_header') {
+      const headerName = String(b.getFieldValue('HEADER_NAME') ?? '').trim()
+      const description = String(b.getFieldValue('DESCRIPTION') ?? '').trim()
+      if (!headerName) continue
+      schemes[id] = {
+        type: 'apiKey',
+        in: 'header',
+        name: headerName,
+        ...(description ? { description } : {}),
+      }
+      continue
+    }
+  }
+
+  return Object.keys(schemes).length > 0 ? schemes : undefined
+}
+
+function buildSecurityRequirementListFromStatement(
+  firstReq: Blockly.Block | null,
+): Array<Record<string, string[]>> | undefined {
+  const out: Array<Record<string, string[]>> = []
+  for (const b of chainFrom(firstReq)) {
+    if (b.type !== 'openapi_security_requirement') continue
+    const id = String(b.getFieldValue('SCHEME_ID') ?? '').trim()
+    if (!id) continue
+    out.push({ [id]: [] })
+  }
+  return out.length > 0 ? out : undefined
+}
+
 export function buildOpenApiMvpFromWorkspace(workspace: Blockly.Workspace): OpenApiMvpSpec | null {
   const roots = workspace.getTopBlocks(false).filter((b) => b.type === 'openapi_root')
   const root = roots[0]
@@ -191,6 +245,10 @@ export function buildOpenApiMvpFromWorkspace(workspace: Blockly.Workspace): Open
 
   const paths: OpenApiMvpSpec['paths'] = {}
 
+  const globalSecurity = buildSecurityRequirementListFromStatement(
+    root.getInputTargetBlock('GLOBAL_SECURITY'),
+  )
+
   const firstPath = root.getInputTargetBlock('PATHS')
   for (const pathBlock of chainFrom(firstPath)) {
     if (pathBlock.type !== 'openapi_path') continue
@@ -205,6 +263,13 @@ export function buildOpenApiMvpFromWorkspace(workspace: Blockly.Workspace): Open
       if (!verb) continue
 
       const summaryRaw = String(methodBlock.getFieldValue('SUMMARY') ?? '').trim()
+      const securityMode = String(methodBlock.getFieldValue('SECURITY_MODE') ?? 'inherit')
+      const operationSecurity =
+        securityMode === 'override'
+          ? buildSecurityRequirementListFromStatement(methodBlock.getInputTargetBlock('SECURITY'))
+          : securityMode === 'none'
+            ? []
+            : undefined
       const responses: Record<string, { description: string; content?: any }> = {}
 
       const firstResp = methodBlock.getInputTargetBlock('RESPONSES')
@@ -229,6 +294,7 @@ export function buildOpenApiMvpFromWorkspace(workspace: Blockly.Workspace): Open
 
       paths[pathKey][verb] = {
         ...(summaryRaw ? { summary: summaryRaw } : {}),
+        ...(operationSecurity !== undefined ? { security: operationSecurity } : {}),
         responses,
       }
     }
@@ -237,10 +303,16 @@ export function buildOpenApiMvpFromWorkspace(workspace: Blockly.Workspace): Open
   const spec: OpenApiMvpSpec = {
     openapi,
     info: { title, version },
+    ...(globalSecurity ? { security: globalSecurity } : {}),
     paths,
   }
-  if (Object.keys(schemas).length > 0) {
-    spec.components = { schemas }
+
+  const securitySchemes = buildSecuritySchemesFromRoot(root)
+  if (Object.keys(schemas).length > 0 || securitySchemes) {
+    spec.components = {
+      schemas,
+      ...(securitySchemes ? { securitySchemes } : {}),
+    }
   }
   return spec
 }

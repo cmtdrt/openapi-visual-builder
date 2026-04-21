@@ -47,7 +47,13 @@ const TOOLBOX: Blockly.utils.toolbox.ToolboxDefinition = {
       kind: 'category',
       name: 'Sécurité',
       colour: '#64748b',
-      contents: [{ kind: 'label', text: '...' }],
+      contents: [
+        { kind: 'label', text: 'Schémas (components.securitySchemes)' },
+        { kind: 'block', type: 'openapi_security_scheme_jwt' },
+        { kind: 'block', type: 'openapi_security_scheme_header' },
+        { kind: 'label', text: 'Exigences (security)' },
+        { kind: 'block', type: 'openapi_security_requirement' },
+      ],
     },
   ],
 }

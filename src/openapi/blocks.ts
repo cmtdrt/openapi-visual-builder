@@ -6,7 +6,8 @@ export function registerOpenApiMvpBlocks() {
   Blockly.defineBlocksWithJsonArray([
     {
       type: 'openapi_root',
-      message0: 'OpenAPI %1 titre %2 version %3 %4 schémas réutilisables %5 paths %6',
+      message0:
+        'OpenAPI %1 titre %2 version %3 %4 schémas réutilisables %5 schémas de sécurité %6 sécurité globale %7 paths %8',
       args0: [
         {
           type: 'field_dropdown',
@@ -20,6 +21,8 @@ export function registerOpenApiMvpBlocks() {
         { type: 'field_input', name: 'API_VERSION', text: '1.0.0' },
         { type: 'input_dummy' },
         { type: 'input_statement', name: 'SCHEMA_DEFS', check: 'SCHEMA_DEF' },
+        { type: 'input_statement', name: 'SECURITY_SCHEMES', check: 'SECURITY_SCHEME_DEF' },
+        { type: 'input_statement', name: 'GLOBAL_SECURITY', check: 'SECURITY_REQUIREMENT' },
         { type: 'input_statement', name: 'PATHS', check: 'PATH' },
       ],
       colour: 285,
@@ -43,7 +46,7 @@ export function registerOpenApiMvpBlocks() {
     },
     {
       type: 'openapi_method',
-      message0: 'méthode %1 résumé %2 %3 responses %4',
+      message0: 'méthode %1 résumé %2 sécurité %3 %4 responses %5',
       args0: [
         {
           type: 'field_dropdown',
@@ -57,7 +60,16 @@ export function registerOpenApiMvpBlocks() {
           ],
         },
         { type: 'field_input', name: 'SUMMARY', text: 'Décrit ce que fait l’endpoint' },
-        { type: 'input_dummy' },
+        {
+          type: 'field_dropdown',
+          name: 'SECURITY_MODE',
+          options: [
+            ['hérite (global)', 'inherit'],
+            ['override (spécifique)', 'override'],
+            ['aucune (public)', 'none'],
+          ],
+        },
+        { type: 'input_statement', name: 'SECURITY', check: 'SECURITY_REQUIREMENT' },
         { type: 'input_statement', name: 'RESPONSES', check: 'RESPONSE' },
       ],
       previousStatement: 'METHOD',
@@ -215,6 +227,45 @@ export function registerOpenApiMvpBlocks() {
       nextStatement: 'SCHEMA_DEF',
       colour: 45,
       tooltip: 'Déclare un schéma réutilisable sous components.schemas.',
+      helpUrl: '',
+    },
+    {
+      type: 'openapi_security_scheme_jwt',
+      message0: 'security scheme JWT id %1 description %2 bearerFormat %3',
+      args0: [
+        { type: 'field_input', name: 'SCHEME_ID', text: 'jwtAuth' },
+        { type: 'field_input', name: 'DESCRIPTION', text: '' },
+        { type: 'field_input', name: 'BEARER_FORMAT', text: 'JWT' },
+      ],
+      previousStatement: 'SECURITY_SCHEME_DEF',
+      nextStatement: 'SECURITY_SCHEME_DEF',
+      colour: 110,
+      tooltip: 'Déclare un securityScheme HTTP bearer (JWT).',
+      helpUrl: '',
+    },
+    {
+      type: 'openapi_security_scheme_header',
+      message0: 'security scheme Header id %1 header %2 description %3',
+      args0: [
+        { type: 'field_input', name: 'SCHEME_ID', text: 'apiKeyAuth' },
+        { type: 'field_input', name: 'HEADER_NAME', text: 'X-API-KEY' },
+        { type: 'field_input', name: 'DESCRIPTION', text: '' },
+      ],
+      previousStatement: 'SECURITY_SCHEME_DEF',
+      nextStatement: 'SECURITY_SCHEME_DEF',
+      colour: 110,
+      tooltip: 'Déclare un securityScheme apiKey dans le header (custom).',
+      helpUrl: '',
+    },
+    {
+      type: 'openapi_security_requirement',
+      message0: 'require %1',
+      args0: [{ type: 'field_input', name: 'SCHEME_ID', text: 'jwtAuth' }],
+      previousStatement: 'SECURITY_REQUIREMENT',
+      nextStatement: 'SECURITY_REQUIREMENT',
+      colour: 120,
+      tooltip:
+        'Ajoute une exigence de sécurité (ex: jwtAuth). Chaîne de blocs = plusieurs exigences (OR) comme OpenAPI security[].',
       helpUrl: '',
     },
   ])
